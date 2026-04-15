@@ -8,6 +8,7 @@ xhtml2pdf
 itsdangerous
 python-multipart
 python-jose
+bcrypt==4.0.1
 Passlib[bcrypt]
 python-dotenv
 psycopg2-binary
