@@ -1,3 +1,5 @@
+wheel
+setuptools
 fastapi
 uvicorn
 jinja2
