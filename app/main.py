@@ -41,14 +41,17 @@ async def startup_event():
     db = SessionLocal()
     try:
         admin = db.query(Admin).filter(Admin.username == "admin").first()
+        hashed_password = pwd_context.hash("admin123")
         if not admin:
-            hashed_password = pwd_context.hash("admin123")
             new_admin = Admin(username="admin", password_hash=hashed_password)
             db.add(new_admin)
             db.commit()
             print("[STARTUP] Default admin user created")
         else:
-            print("[STARTUP] Admin user already exists")
+            # Always refresh hash to ensure compatibility with current scheme
+            admin.password_hash = hashed_password
+            db.commit()
+            print("[STARTUP] Admin password hash refreshed")
     except Exception as e:
         db.rollback()
         print(f"[STARTUP] Error creating admin user: {e}")
@@ -111,4 +114,3 @@ async def logout():
 from app.routes import dashboard, timetable
 app.include_router(dashboard.router)
 app.include_router(timetable.router)
-
