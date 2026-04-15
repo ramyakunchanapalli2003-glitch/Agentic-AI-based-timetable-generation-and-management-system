@@ -25,7 +25,7 @@ async def index(request: Request, user = Depends(get_current_user)):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html", context={"request": request})
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
@@ -35,7 +35,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
         session_token = serializer.dumps(username)
         response.set_cookie(key="session", value=session_token, httponly=True)
         return response
-    return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+    return templates.TemplateResponse(request=request, name="login.html", context={"request": request, "error": "Invalid credentials"})
 
 @app.get("/logout")
 async def logout():
