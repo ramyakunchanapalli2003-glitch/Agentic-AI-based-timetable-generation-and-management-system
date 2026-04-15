@@ -5,10 +5,33 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import os
 
-from app.models.database import get_db, Admin
+from app.models.database import get_db, Admin, SessionLocal, init_db
 from app.dependencies import templates, serializer, get_current_user
 
 app = FastAPI(title="Agentic AI Timetable System")
+
+@app.on_event("startup")
+async def startup_event():
+    # Ensure database directory exists
+    db_dir = "./database"
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+        
+    init_db()
+    
+    db = SessionLocal()
+    try:
+        admin = db.query(Admin).filter(Admin.username == "admin").first()
+        if not admin:
+            hashed_password = pwd_context.hash("admin123")
+            new_admin = Admin(username="admin", password_hash=hashed_password)
+            db.add(new_admin)
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error initializing database: {e}")
+    finally:
+        db.close()
 
 pwd_context = CryptContext(schemes=["sha256_crypt", "bcrypt"], deprecated="auto")
 
