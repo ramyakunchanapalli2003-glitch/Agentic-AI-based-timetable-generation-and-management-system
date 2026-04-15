@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic AI Timetable - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 14px 24px;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            animation: toastSlideIn 0.4s ease, toastFadeOut 0.4s ease 3s forwards;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .toast-success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .toast-error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .toast-info {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastFadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <header>
+        <div class="logo">Timetable AI</div>
+        <nav>
+            {% if user %}
+            <a href="/dashboard">Dashboard</a>
+            <a href="/setup">Generate</a>
+            <a href="/logout">Logout ({{ user }})</a>
+            {% else %}
+            <a href="/login">Login</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <footer style="text-align: center; padding: 2rem; color: var(--text-light); font-size: 0.8rem;">
+        &copy; 2026 Agentic AI Timetable Generation System. All Rights Reserved.
+    </footer>
+
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+            toast.innerHTML = '<span>' + (icons[type] || '') + '</span><span>' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3500);
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

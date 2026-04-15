@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}View Timetable{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+    <div>
+        <h1 style="color: var(--primary-dark);">Academic Timetable</h1>
+        <p style="color: var(--text-light);">{{ timetable.department }} | {{ timetable.course }} | Semester {{
+            timetable.semester }}</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="/edit-config/{{ timetable.id }}" class="btn btn-primary"
+            style="background: var(--primary-light); display: flex; align-items: center; gap: 8px;">
+            Edit Configuration
+        </a>
+        <a href="/download/{{ timetable.id }}" class="btn btn-primary"
+            style="background: var(--secondary); display: flex; align-items: center; gap: 8px;">
+            Download PDF
+        </a>
+        <form action="/delete/{{ timetable.id }}" method="post" style="margin: 0;"
+            onsubmit="return confirm('Are you sure you want to delete this timetable?');">
+            <button type="submit" class="btn"
+                style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background: #e53e3e; color: white; border: none; cursor: pointer; border-radius: 6px;">
+                Delete
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="padding: 10px; overflow-x: auto;">
+    <table class="timetable-grid">
+        <thead>
+            <tr>
+                <th style="width: 120px; background: var(--primary-dark); color: white;">Days / Time</th>
+                {% for slot in slots %}
+                <th style="background: #f1f5f9; text-align: center;">{{ slot }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for day in days %}
+            <tr>
+                <td style="font-weight: 800; background: #f8fafc; color: var(--primary-dark);">{{ day }}</td>
+
+                {% set day_slots = data[day] %}
+                {% set ns = namespace(skip=0) %}
+
+                {% for i in range(slots|length) %}
+                {% if ns.skip > 0 %}
+                {% set ns.skip = ns.skip - 1 %}
+                {% else %}
+                {% set slot_data = day_slots[i] %}
+
+                {% if slot_data %}
+                {% if slot_data.name == "LUNCH" %}
+                <td class="type-break" style="vertical-align: middle;">LUNCH</td>
+                {% else %}
+                {# Check for continuous subjects #}
+                {% set count = namespace(val=1) %}
+                {% set breaking = namespace(stop=false) %}
+                {% for next_idx in range(i + 1, slots|length) %}
+                {% if not breaking.stop and day_slots[next_idx] and day_slots[next_idx].name == slot_data.name %}
+                {% set count.val = count.val + 1 %}
+                {% else %}
+                {% set breaking.stop = true %}
+                {% endif %}
+                {% endfor %}
+
+                <td class="type-{{ slot_data.type|lower }}" {% if count.val> 1 %}colspan="{{ count.val }}"{% endif %}>
+                    <div class="slot-content">
+                        <span class="slot-name">{{ slot_data.name }}</span>
+                        {% for faculty_name in slot_data.faculty.split(',') %}
+                        <span class="slot-faculty">{{ faculty_name.strip() }}</span>
+                        {% endfor %}
+                        <span class="slot-type type-{{ slot_data.type|lower }}">{{ slot_data.type }}</span>
+                    </div>
+                </td>
+                {% set ns.skip = count.val - 1 %}
+                {% endif %}
+                {% else %}
+                <td></td>
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top: 2rem;">
+    <a href="/dashboard" class="btn" style="background: #ddd;">&larr; Back to Dashboard</a>
+</div>
+{% endblock %}

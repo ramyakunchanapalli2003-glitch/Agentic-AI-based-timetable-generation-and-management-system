@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;" id="dashboardTitle" data-toast="{{ toast }}">Welcome, Admin</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="label">Total Timetables</span>
+        <span class="value">{{ total }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Last Generated</span>
+        <span class="value" style="font-size: 1.2rem;">{{ last_date }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">System Status</span>
+        <span class="value" style="color: var(--success);">Running</span>
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+        <h2>All Timetables</h2>
+        <a href="/setup" class="btn btn-primary">+ Generate New</a>
+    </div>
+
+    <!-- Search & Filter -->
+    <div style="display: flex; gap: 12px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+        <select id="filterDept" onchange="filterTable()"
+            style="padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid #edf2f7; font-size: 0.85rem; background: #f8fafc;">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept }}">{{ dept }}</option>
+            {% endfor %}
+        </select>
+        <select id="filterCourse" onchange="filterTable()"
+            style="padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid #edf2f7; font-size: 0.85rem; background: #f8fafc;">
+            <option value="">All Courses</option>
+            {% for course in courses %}
+            <option value="{{ course }}">{{ course }}</option>
+            {% endfor %}
+        </select>
+        <input type="number" id="filterSemester" placeholder="Semester" min="1" max="8" onchange="filterTable()"
+            oninput="filterTable()"
+            style="padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid #edf2f7; font-size: 0.85rem; background: #f8fafc; width: 130px;">
+        <button onclick="clearFilters()" class="btn"
+            style="padding: 0.5rem 1rem; font-size: 0.8rem; background: #e2e8f0; color: var(--primary-dark);">Clear</button>
+    </div>
+
+    <div class="table-container">
+        <table id="timetableTable">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Course</th>
+                    <th>Semester</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tt in recent_timetables %}
+                <tr data-dept="{{ tt.department }}" data-course="{{ tt.course }}" data-semester="{{ tt.semester }}">
+                    <td>{{ tt.department }}</td>
+                    <td>{{ tt.course }}</td>
+                    <td>{{ tt.semester }}</td>
+                    <td style="font-size: 0.85rem; color: var(--text-light);">{{ tt.created_at.strftime('%Y-%m-%d
+                        %H:%M') }}</td>
+                    <td>
+                        <a href="/view/{{ tt.id }}" class="btn btn-primary"
+                            style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">View</a>
+                        <a href="/download/{{ tt.id }}" class="btn btn-primary"
+                            style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--secondary);">PDF</a>
+                        <form action="/delete/{{ tt.id }}" method="post" style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to delete this timetable?');">
+                            <button type="submit" class="btn"
+                                style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: #e53e3e; color: white; border: none; cursor: pointer; border-radius: 6px;">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr id="noDataRow">
+                    <td colspan="5" style="text-align: center; color: var(--text-light);">No timetables generated yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p id="noMatchMsg" style="display: none; text-align: center; color: var(--text-light); padding: 2rem 0;">No
+            timetables match the selected filters.</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>System Agent Logs</h2>
+    <div
+        style="margin-top: 1rem; max-height: 300px; overflow-y: auto; background: #fafafa; padding: 1rem; border-radius: 8px;">
+        {% for log in recent_logs %}
+        <div class="log-item class-{{ log.status|lower }}">
+            <span style="color: var(--text-light)">[{{ log.timestamp.strftime('%H:%M:%S') }}]</span>
+            <span class="log-{{ log.status|lower }}">{{ log.message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Search & Filter ---
+    function filterTable() {
+        const dept = document.getElementById('filterDept').value;
+        const course = document.getElementById('filterCourse').value;
+        const semester = document.getElementById('filterSemester').value;
+        const rows = document.querySelectorAll('#timetableTable tbody tr[data-dept]');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const matchDept = !dept || row.dataset.dept === dept;
+            const matchCourse = !course || row.dataset.course === course;
+            const matchSem = !semester || row.dataset.semester === semester;
+            const show = matchDept && matchCourse && matchSem;
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        const noMatch = document.getElementById('noMatchMsg');
+        const noData = document.getElementById('noDataRow');
+        if (noMatch) noMatch.style.display = visibleCount === 0 && rows.length > 0 ? 'block' : 'none';
+        if (noData) noData.style.display = rows.length === 0 ? '' : 'none';
+    }
+
+    function clearFilters() {
+        document.getElementById('filterDept').value = '';
+        document.getElementById('filterCourse').value = '';
+        document.getElementById('filterSemester').value = '';
+        filterTable();
+    }
+
+
+
+    // --- Toast from query param ---
+    const toastMsg = document.getElementById('dashboardTitle').dataset.toast;
+    if (toastMsg && toastMsg.trim() !== '') {
+        window.addEventListener('DOMContentLoaded', () => {
+            showToast(toastMsg, "success");
+            // Clean URL
+            const url = new URL(window.location);
+            url.searchParams.delete('toast');
+            window.history.replaceState({}, '', url);
+        });
+    }
+</script>
+{% endblock %}
