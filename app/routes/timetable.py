@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request, user = Depends(login_required)):
-    return templates.TemplateResponse("setup.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="setup.html", context={"request": request, "user": user})
 
 @router.post("/generate")
 async def generate_timetable(
@@ -37,7 +37,7 @@ async def generate_timetable(
         Timetable.semester == semester
     ).first()
     if existing:
-        return templates.TemplateResponse("setup.html", {
+        return templates.TemplateResponse(request=request, name="setup.html", context={
             "request": request,
             "error": f"A timetable for {department} - {course} - Semester {semester} already exists. Please delete the existing one first from the dashboard.",
             "user": user
@@ -124,7 +124,7 @@ async def generate_timetable(
     else:
         # If it failed, we don't save the timetable, but we can't save logs either 
         # because they need a timetable_id. For now, we'll just return error.
-        return templates.TemplateResponse("setup.html", {
+        return templates.TemplateResponse(request=request, name="setup.html", context={
             "request": request, 
             "error": "Failed to generate valid collision-free timetable. Check input constraints.",
             "user": user
@@ -138,7 +138,7 @@ async def view_timetable(request: Request, tt_id: int, db: Session = Depends(get
     if not tt:
         raise HTTPException(status_code=404, detail="Timetable not found")
     
-    return templates.TemplateResponse("view_timetable.html", {
+    return templates.TemplateResponse(request=request, name="view_timetable.html", context={
         "request": request,
         "timetable": tt,
         "data": tt.generated_data,
@@ -186,7 +186,7 @@ async def edit_page(request: Request, tt_id: int, db: Session = Depends(get_db),
     tt = db.query(Timetable).filter(Timetable.id == tt_id).first()
     if not tt:
         raise HTTPException(status_code=404, detail="Timetable not found")
-    return templates.TemplateResponse("edit_timetable.html", {
+    return templates.TemplateResponse(request=request, name="edit_timetable.html", context={
         "request": request, 
         "timetable": tt, 
         "user": user,
@@ -286,7 +286,7 @@ async def regenerate_timetable(
             db.commit()
             return RedirectResponse(url=f"/view/{tt.id}?toast=Timetable+re-generated+successfully", status_code=303)
 
-    return templates.TemplateResponse("edit_timetable.html", {
+    return templates.TemplateResponse(request=request, name="edit_timetable.html", context={
         "request": request, 
         "timetable": tt,
         "error": "Failed to re-generate valid collision-free timetable with updated constraints.",
