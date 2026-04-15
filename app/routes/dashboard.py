@@ -23,7 +23,7 @@ async def dashboard_page(request: Request, db: Session = Depends(get_db), user =
     # Toast message from query params (e.g. after delete)
     toast = request.query_params.get("toast", "")
 
-    return templates.TemplateResponse("dashboard.html", {
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={
         "request": request,
         "user": user,
         "total": total_timetables,
