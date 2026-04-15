@@ -4,8 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import os
+import time
 
-from app.models.database import get_db, Admin, SessionLocal, init_db
+from app.models.database import get_db, Admin, SessionLocal, init_db, DB_URL
 from app.dependencies import templates, serializer, get_current_user
 
 app = FastAPI(title="Agentic AI Timetable System")
@@ -16,9 +17,27 @@ async def startup_event():
     db_dir = "./database"
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
-        
-    init_db()
-    
+
+    # Log DB type for debugging (mask credentials)
+    if DB_URL.startswith("postgresql"):
+        print(f"[STARTUP] Using PostgreSQL database")
+    else:
+        print(f"[STARTUP] Using SQLite database")
+
+    # Retry DB connection up to 3 times
+    for attempt in range(3):
+        try:
+            init_db()
+            print(f"[STARTUP] Database initialized successfully (attempt {attempt + 1})")
+            break
+        except Exception as e:
+            print(f"[STARTUP] DB init attempt {attempt + 1} failed: {e}")
+            if attempt < 2:
+                time.sleep(2)
+            else:
+                print("[STARTUP] WARNING: Could not initialize database after 3 attempts. App will start but DB operations may fail.")
+                return
+
     db = SessionLocal()
     try:
         admin = db.query(Admin).filter(Admin.username == "admin").first()
@@ -27,9 +46,12 @@ async def startup_event():
             new_admin = Admin(username="admin", password_hash=hashed_password)
             db.add(new_admin)
             db.commit()
+            print("[STARTUP] Default admin user created")
+        else:
+            print("[STARTUP] Admin user already exists")
     except Exception as e:
         db.rollback()
-        print(f"Error initializing database: {e}")
+        print(f"[STARTUP] Error creating admin user: {e}")
     finally:
         db.close()
 
@@ -89,3 +111,4 @@ async def logout():
 from app.routes import dashboard, timetable
 app.include_router(dashboard.router)
 app.include_router(timetable.router)
+
