@@ -19,8 +19,10 @@ if DB_URL.startswith("postgres://"):
 connect_args = {}
 if DB_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
+elif DB_URL.startswith("postgresql"):
+    connect_args["sslmode"] = "require"
 
-engine = create_engine(DB_URL, connect_args=connect_args)
+engine = create_engine(DB_URL, connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
