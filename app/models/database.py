@@ -6,10 +6,11 @@ import datetime
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Use environment variable for database URL, fallback to local SQLite
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./database/timetable.db")
+print(f"[DB] Database type: {'PostgreSQL' if 'postgresql' in DB_URL or 'postgres' in DB_URL else 'SQLite'}")
 
 # SQLAlchemy requires postgresql:// instead of postgres:// 
 if DB_URL.startswith("postgres://"):
