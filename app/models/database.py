@@ -23,7 +23,7 @@ if DB_URL.startswith("sqlite"):
 elif DB_URL.startswith("postgresql"):
     connect_args["sslmode"] = "require"
 
-engine = create_engine(DB_URL, connect_args=connect_args, pool_pre_ping=True)
+engine = create_engine(DB_URL, connect_args=connect_args, pool_pre_ping=True, pool_recycle=300)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
