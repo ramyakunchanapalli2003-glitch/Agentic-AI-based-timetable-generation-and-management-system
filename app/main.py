@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import os
@@ -10,6 +11,9 @@ from app.models.database import get_db, Admin, SessionLocal, init_db, DB_URL
 from app.dependencies import templates, serializer, get_current_user
 
 app = FastAPI(title="Agentic AI Timetable System")
+
+# Trust proxies (Render, etc.) for redirects
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 @app.on_event("startup")
 async def startup_event():
@@ -65,7 +69,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- Routes ---
 
-@app.get("/", response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def index(request: Request, user = Depends(get_current_user)):
     if user:
         return RedirectResponse(url="/dashboard")
