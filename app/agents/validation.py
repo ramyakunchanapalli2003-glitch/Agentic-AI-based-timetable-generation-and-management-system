@@ -1,18 +1,22 @@
+from app.agents.generation import match_subject
+
 class ValidationAgent:
     """
     Validates a generated timetable against rules:
-    - Lab continuity (actually checked by GenAgent, but good to verify).
+    - Lab continuity.
     - No subject in lunch.
-    - One subject per slot (implied if not missing).
     - Exact weekly period count match.
+    - Global faculty collision check.
+    - Custom natural-language instruction constraint verification.
     """
     
     LUNCH_INDEX = 3
 
-    def __init__(self, subjects, timetable, busy_faculty=None):
+    def __init__(self, subjects, timetable, busy_faculty=None, custom_constraints=None):
         self.subjects = subjects
         self.timetable = timetable
         self.busy_faculty = busy_faculty or {}
+        self.custom_constraints = custom_constraints or []
         self.logs = []
 
     def _normalize_name(self, name):
@@ -22,7 +26,6 @@ class ValidationAgent:
         """
         if not name: return set()
         
-        # Split by common delimiters
         raw_names = []
         for delimiter in [',', '&', ' and ']:
             if delimiter in name:
@@ -89,19 +92,15 @@ class ValidationAgent:
                 return False, self.logs
 
         # 3. Lab continuity
-        # Every lab period should be part of a block of at least size 2.
-        # This is a bit complex for a simple validator, so we check if any lab is isolated (just 1 slot surrounded by non-lab).
         for day, slots in self.timetable.items():
             for i, slot in enumerate(slots):
                 if slot and slot['type'] == 'Lab':
-                    # Check if it has a neighbor of the same name
                     has_neighbor = False
                     if i > 0 and slots[i-1] and slots[i-1]['name'] == slot['name']:
                         has_neighbor = True
                     if i < len(slots) - 1 and slots[i+1] and slots[i+1]['name'] == slot['name']:
                         has_neighbor = True
                     
-                    # Special case: if target periods for the lab is 1, it's allowed.
                     target_periods = next(int(s['periods']) for s in self.subjects if s['name'] == slot['name'])
                     if not has_neighbor and target_periods > 1:
                         self.log(f"Error: Isolated lab session for '{slot['name']}' on {day}.")
@@ -115,6 +114,34 @@ class ValidationAgent:
                         if self._is_faculty_collision(slot['faculty'], self.busy_faculty[day][idx]):
                             self.log(f"Error: Faculty collision for '{slot['faculty']}' on {day} at slot {idx+1} with another class.")
                             return False, self.logs
+
+        # 5. Custom Natural-Language Constraint Verification
+        for c in self.custom_constraints:
+            target_sub = c.get("subject", "")
+            ctype = c.get("type", "")
+            target_day = c.get("day", "")
+            time_range = c.get("time_range", "")
+            time_range_str = time_range.lower() if isinstance(time_range, str) else ""
+
+            if not target_sub:
+                continue
+
+            for day, slots in self.timetable.items():
+                for idx, slot in enumerate(slots):
+                    if slot and slot['name'] != "LUNCH":
+                        if match_subject(target_sub, slot['name']):
+                            if ctype == "pin_day" and target_day and day.lower() != target_day.lower():
+                                self.log(f"Error: Custom constraint failed: Subject '{slot['name']}' was scheduled on {day} instead of requested day {target_day.capitalize()}.")
+                                return False, self.logs
+                            if ctype == "avoid_day" and target_day and day.lower() == target_day.lower():
+                                self.log(f"Error: Custom constraint failed: Subject '{slot['name']}' was scheduled on forbidden day {target_day.capitalize()}.")
+                                return False, self.logs
+                            if (ctype in ("before_lunch", "morning") or time_range_str in ("morning", "before_lunch", "before lunch")) and idx > self.LUNCH_INDEX:
+                                self.log(f"Error: Custom constraint failed: Subject '{slot['name']}' was scheduled after lunch at slot {idx+1} instead of morning/before lunch.")
+                                return False, self.logs
+                            if (ctype in ("after_lunch", "afternoon") or time_range_str in ("afternoon", "after_lunch", "after lunch")) and idx < self.LUNCH_INDEX:
+                                self.log(f"Error: Custom constraint failed: Subject '{slot['name']}' was scheduled before lunch at slot {idx+1} instead of afternoon/after lunch.")
+                                return False, self.logs
 
         self.log("ValidationAgent passed successfully.")
         return True, self.logs

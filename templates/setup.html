@@ -8,9 +8,58 @@
     <p style="color: var(--text-light); margin-bottom: 2rem;">Configure the course details and subjects to start the
         agent pipeline.</p>
 
-    {% if error %}
+
+    {% if conflict_diagnostic %}
+    <div class="ai-conflict-card">
+        <div class="ai-conflict-header">
+            <span class="ai-conflict-icon">⚠️</span>
+            <span>AI Scheduling Instruction Could Not Be Satisfied</span>
+        </div>
+        <div class="ai-conflict-body">
+            <div class="ai-conflict-row">
+                <span class="ai-conflict-label">📋 Requested:</span>
+                <span>{{ conflict_diagnostic.instruction }}</span>
+            </div>
+            <div class="ai-conflict-row">
+                <span class="ai-conflict-label">📚 Subject:</span>
+                <span><strong>{{ conflict_diagnostic.subject }}</strong>
+                    {% if conflict_diagnostic.faculty %}(Faculty: {{ conflict_diagnostic.faculty }}){% endif %}
+                </span>
+            </div>
+            {% if conflict_diagnostic.requested_target %}
+            <div class="ai-conflict-row">
+                <span class="ai-conflict-label">📅 Requested Slot:</span>
+                <span>{{ conflict_diagnostic.requested_target }}</span>
+            </div>
+            {% endif %}
+            <div class="ai-conflict-row ai-conflict-reasons">
+                <span class="ai-conflict-label">❌ Why it failed:</span>
+                <ul>
+                    {% for reason in conflict_diagnostic.conflict_reasons %}
+                    <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if conflict_diagnostic.alternative_slots %}
+            <div class="ai-conflict-row ai-conflict-alts">
+                <span class="ai-conflict-label">✅ Available alternatives:</span>
+                <span>{{ conflict_diagnostic.alternative_slots | join(', ') }}</span>
+            </div>
+            {% else %}
+            <div class="ai-conflict-row">
+                <span class="ai-conflict-label">✅ Alternatives:</span>
+                <span>No free slots found on any other day.</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="ai-conflict-hint">
+            Please modify your scheduling instruction and try again.
+        </div>
+    </div>
+    {% elif error %}
     <div class="alert alert-error">{{ error }}</div>
     {% endif %}
+
 
     <form id="timetableForm" action="/generate" method="POST">
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
@@ -44,9 +93,7 @@
             </div>
         </div>
 
-        <h3>Subjects Configuration</h3>
-        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 1rem;">Add at least 5-6 subjects for a
-            full weekly schedule.</p>
+        <h3 style="margin-bottom: 1rem;">Subjects Configuration</h3>
 
         <div id="subjectsContainer">
             <!-- Headers -->
@@ -66,6 +113,17 @@
             onclick="addSubjectRow()">+ Add Subject</button>
 
         <input type="hidden" name="subjects_json" id="subjects_json">
+
+        <!-- AI Scheduling Instruction (Optional) -->
+        <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #e8eaf6, #e0f7fa); border-radius: 10px; border: 1px solid #b2ebf2;">
+            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; color: var(--primary-dark);">
+                <span style="font-size: 1.1rem;">🤖</span>
+                AI Scheduling Instruction <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-light);">(Optional)</span>
+            </label>
+            <input type="text" name="ai_instruction" id="ai_instruction"
+                placeholder="Enter your scheduling instruction here..."
+                style="background: #fff;">
+        </div>
 
         <div style="margin-top: 3rem; border-top: 1px solid #eee; padding-top: 2rem; text-align: right;">
             <button type="submit" class="btn btn-primary" style="padding: 1rem 3rem;">Run Generation Agent

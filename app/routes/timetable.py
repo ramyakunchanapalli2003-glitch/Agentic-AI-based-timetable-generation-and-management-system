@@ -11,6 +11,7 @@ from app.models.database import get_db, Timetable, AgentLog
 from app.dependencies import templates, login_required
 from app.agents.generation import GenerationAgent
 from app.agents.validation import ValidationAgent
+from app.agents.planning import PlanningAgent
 
 router = APIRouter()
 
@@ -25,6 +26,7 @@ async def generate_timetable(
     course: str = Form(...),
     semester: int = Form(...),
     subjects_json: str = Form(...),
+    ai_instruction: str = Form(""),
     db: Session = Depends(get_db), 
     user = Depends(login_required)
 ):
@@ -83,6 +85,31 @@ async def generate_timetable(
                     # Add all normalized names for this faculty string
                     busy_faculty[day][idx].update(normalize_name_set(slot['faculty']))
 
+    # --- Gemini Planning Agent path ---
+    ai_instruction = ai_instruction.strip() if ai_instruction else ""
+    if ai_instruction:
+        agent = PlanningAgent(
+            db=db,
+            subjects=subjects,
+            department=department,
+            course=course,
+            semester=semester,
+            busy_faculty=busy_faculty,
+            ai_instruction=ai_instruction,
+        )
+        result = agent.run()
+        if result["success"]:
+            return RedirectResponse(url=f"/view/{result['timetable_id']}", status_code=303)
+        else:
+            conflict_diagnostic = getattr(agent, "conflict_diagnostic", None)
+            return templates.TemplateResponse(request=request, name="setup.html", context={
+                "request": request, 
+                "error": result.get("error", "AI agent failed to generate a valid timetable."),
+                "conflict_diagnostic": conflict_diagnostic,
+                "user": user
+            })
+
+    # --- Original direct pipeline (unchanged) ---
     gen_agent = GenerationAgent(subjects, busy_faculty=busy_faculty)
     timetable_data, gen_logs = gen_agent.generate()
     
@@ -201,6 +228,7 @@ async def regenerate_timetable(
     course: str = Form(...),
     semester: int = Form(...),
     subjects_json: str = Form(...),
+    ai_instruction: str = Form(""),
     db: Session = Depends(get_db), 
     user = Depends(login_required)
 ):
@@ -253,6 +281,34 @@ async def regenerate_timetable(
                         busy_faculty[day][idx] = set()
                     busy_faculty[day][idx].update(normalize_name_set(slot['faculty']))
 
+    # --- Gemini Planning Agent path ---
+    ai_instruction = ai_instruction.strip() if ai_instruction else ""
+    if ai_instruction:
+        agent = PlanningAgent(
+            db=db,
+            subjects=subjects,
+            department=department,
+            course=course,
+            semester=semester,
+            busy_faculty=busy_faculty,
+            ai_instruction=ai_instruction,
+            existing_tt=tt,
+        )
+        result = agent.run()
+        if result["success"]:
+            return RedirectResponse(url=f"/view/{tt.id}?toast=Timetable+re-generated+successfully+via+AI+Agent", status_code=303)
+        else:
+            conflict_diagnostic = getattr(agent, "conflict_diagnostic", None)
+            return templates.TemplateResponse(request=request, name="edit_timetable.html", context={
+                "request": request, 
+                "timetable": tt,
+                "error": result.get("error", "AI agent failed to re-generate a valid timetable."),
+                "conflict_diagnostic": conflict_diagnostic,
+                "user": user,
+                "subjects": subjects
+            })
+
+    # --- Original direct pipeline (unchanged) ---
     gen_agent = GenerationAgent(subjects, busy_faculty=busy_faculty)
     timetable_data, gen_logs = gen_agent.generate()
     

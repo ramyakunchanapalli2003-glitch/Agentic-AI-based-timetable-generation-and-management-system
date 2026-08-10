@@ -277,3 +277,76 @@ th {
 .log-success { color: var(--success); }
 .log-info { color: var(--text-light); }
 .log-failed { color: var(--error); font-weight: bold; }
+
+/* ── AI Conflict Notification Card ───────────────────────────── */
+.ai-conflict-card {
+    background: #fff8e1;
+    border: 1.5px solid #f59e0b;
+    border-left: 5px solid #f59e0b;
+    border-radius: var(--radius);
+    margin-bottom: 2rem;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+}
+
+.ai-conflict-header {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.ai-conflict-icon {
+    font-size: 1.2rem;
+}
+
+.ai-conflict-body {
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.ai-conflict-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.92rem;
+    color: var(--text);
+    flex-wrap: wrap;
+}
+
+.ai-conflict-label {
+    font-weight: 600;
+    min-width: 170px;
+    flex-shrink: 0;
+    color: #92400e;
+}
+
+.ai-conflict-reasons ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.ai-conflict-reasons li {
+    margin-bottom: 0.25rem;
+    color: #b91c1c;
+}
+
+.ai-conflict-alts span {
+    color: #065f46;
+    font-weight: 500;
+}
+
+.ai-conflict-hint {
+    background: #fef3c7;
+    border-top: 1px solid #fde68a;
+    padding: 0.65rem 1.25rem;
+    font-size: 0.82rem;
+    color: #78350f;
+    font-style: italic;
+}
