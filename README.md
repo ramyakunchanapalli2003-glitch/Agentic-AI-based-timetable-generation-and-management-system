@@ -1,4 +1,4 @@
-# Agentic AI Timetable Generator & Manager
+# Agentic AI Based Timetable Generation and Management System
 
 An intelligent, full-stack timetable generation and management system built with Python, FastAPI, and Google Gemini API. The application features a **Gemini LLM Planning Agent** that acts as an autonomous coordinator, orchestrating constraint-aware timetable generation, validation, auto-retry regeneration (up to 3 attempts), and database persistence using existing tool functions.
 
